@@ -69,7 +69,7 @@ public class Bus {
         this.redBus.updatePeripheral(state);
     }
 
-    private Device findDevice(int address, RedBusState state) {
+    protected Device findDevice(int address, RedBusState state) {
         // RedBus takes priority
         if (this.redBus.inRange(address, state)) {
             return this.redBus;
