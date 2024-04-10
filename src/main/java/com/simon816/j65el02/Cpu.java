@@ -593,10 +593,10 @@ public class Cpu implements InstructionTable {
                         break;
 
                     case 0x01: // Redbus Window offset to A
-                        this.bus.getRedBus().setWindowOffset(this.state.a);
+                        this.redBusState.offset = this.state.a;
                         break;
                     case 0x81:// Get RB window offset to A
-                        this.state.a = this.bus.getRedBus().getWindowOffset();
+                        this.state.a = this.redBusState.offset;
                         if (this.state.mWidthFlag) {
                             this.state.aTop = this.state.a & 0xff00;
                             this.state.a &= 0xff;

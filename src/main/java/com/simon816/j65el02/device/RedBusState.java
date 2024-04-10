@@ -9,16 +9,19 @@ public class RedBusState {
     public int memoryWindow;
     @SuppressWarnings("unused")
     public boolean enableWindow;
-    public RedBusState(int activeDeviceId, boolean enabled, int memoryWindow, boolean enableWindow) {
+    public int offset;
+    public RedBusState(int activeDeviceId, boolean enabled, int memoryWindow, boolean enableWindow, int offset) {
         this.activeDeviceId = activeDeviceId;
         this.enabled = enabled;
         this.memoryWindow = memoryWindow;
         this.enableWindow = enableWindow;
+        this.offset = offset;
     }
     public RedBusState() {
         this.activeDeviceId = 0;
         this.enabled = true;
         this.memoryWindow = 0;
         this.enableWindow = false;
+        this.offset = 0;
     }
 }

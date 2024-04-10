@@ -65,14 +65,16 @@ public class RedBus extends Device {
         }
         return 0;
     }
-
-    public void setWindowOffset(int offset) {
-        this.startAddress = offset;
-        this.endAddress = offset + 0xff;
+    public int getSize(RedBusState state) {
+        return (state.offset+0xff) - state.offset + 1;
     }
-
-    public int getWindowOffset() {
-        return this.startAddress;
+    @Override
+    public int startAddress(RedBusState state) {
+        return state.offset;
+    }
+    @Override
+    public boolean inRange(int address, RedBusState state) {
+        return address >= state.offset && address <= (state.offset+0xff);
     }
 
     public void setPeripheral(int id, Peripheral peripheral) {

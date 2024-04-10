@@ -41,24 +41,24 @@ public class Bus {
         this.boundaries = new int[0];
     }
 
-    public void addDevice(Device device) {
+    public void addDevice(Device device, RedBusState state) {
         this.devices.add(device);
         int[] newBoundaries = new int[this.boundaries.length + 1];
         System.arraycopy(this.boundaries, 0, newBoundaries, 1, this.boundaries.length);
-        newBoundaries[0] = device.startAddress();
+        newBoundaries[0] = device.startAddress(state);
         Arrays.sort(newBoundaries);
-        this.devices.sort(Comparator.comparingInt(Device::startAddress));
+        this.devices.sort(Comparator.comparingInt(a -> a.startAddress(state)));
         this.boundaries = newBoundaries;
     }
 
     public void write(int address, int data, RedBusState state) {
-        Device device = findDevice(address);
-        device.write(address - device.startAddress(), data, state);
+        Device device = findDevice(address,state);
+        device.write(address - device.startAddress(state), data, state);
     }
 
     public int read(int address, boolean cpuAccess, RedBusState state) {
-        Device device = findDevice(address);
-        return device.read(address - device.startAddress(), cpuAccess,state) & 0xff;
+        Device device = findDevice(address,state);
+        return device.read(address - device.startAddress(state), cpuAccess,state) & 0xff;
     }
 
     public RedBus getRedBus() {
@@ -69,9 +69,9 @@ public class Bus {
         this.redBus.updatePeripheral(state);
     }
 
-    private Device findDevice(int address) {
+    private Device findDevice(int address, RedBusState state) {
         // RedBus takes priority
-        if (this.redBus.inRange(address)) {
+        if (this.redBus.inRange(address, state)) {
             return this.redBus;
         }
         int idx = Arrays.binarySearch(this.boundaries, address);

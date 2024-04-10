@@ -75,11 +75,11 @@ public class Machine implements Runnable {
             this.bus = new Bus(this.redBus);
             this.cpu.setBus(this.bus);
 
-            Memory ram = new Memory(0x0000, coreRamSize - 1);
+            Memory ram = new Memory(0x0000, coreRamSize - 1, this.cpu.redBusState);
             if (bootloader != null) {
                 ram.loadFromFile(bootloader, 0x400, 0x100);
             }
-            this.bus.addDevice(ram);
+            this.bus.addDevice(ram, this.cpu.redBusState);
 
         } catch (IOException e) {
             throw new RuntimeException(e);

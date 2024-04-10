@@ -31,9 +31,9 @@ public class Memory extends Device {
 
     private byte[] mem;
 
-    public Memory(int startAddress, int endAddress) {
+    public Memory(int startAddress, int endAddress, RedBusState state) {
         super(startAddress, endAddress);
-        this.mem = new byte[this.getSize()];
+        this.mem = new byte[this.getSize(state)];
     }
 
     @Override

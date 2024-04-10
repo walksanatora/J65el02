@@ -40,15 +40,15 @@ public abstract class Device {
 
     public abstract int read(int address, boolean cpuAccess, RedBusState state);
 
-    public int getSize() {
+    public int getSize(RedBusState state) {
         return this.endAddress - this.startAddress + 1;
     }
 
-    public boolean inRange(int address) {
+    public boolean inRange(int address, RedBusState state) {
         return address >= this.startAddress && address <= this.endAddress;
     }
 
-    public int startAddress() {
+    public int startAddress(RedBusState state) {
         return this.startAddress;
     }
 
