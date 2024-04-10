@@ -159,38 +159,38 @@ public class Cpu implements InstructionTable {
         peekAhead();
     }
 
-    private int maskMWidth() {
+    protected int maskMWidth() {
         return this.state.mWidthFlag ? 0xff : 0xffff;
     }
 
-    private int maskXWidth() {
+    protected int maskXWidth() {
         return this.state.indexWidthFlag ? 0xff : 0xffff;
     }
 
-    private int negativeMWidth() {
+    protected int negativeMWidth() {
         return this.state.mWidthFlag ? 0x80 : 0x8000;
     }
 
-    private int negativeXWidth() {
+    protected int negativeXWidth() {
         return this.state.indexWidthFlag ? 0x80 : 0x8000;
     }
 
-    private int readMemory(int address, boolean x) {
+    protected int readMemory(int address, boolean x) {
         if (this.state.emulationFlag || (x ? this.state.indexWidthFlag : this.state.mWidthFlag)) {
             return readByte(address);
         }
         return readWord(address);
     }
 
-    private int readByte(int address) {
+    protected int readByte(int address) {
         return this.bus.read(address, true,this.redBusState);
     }
 
-    private int readWord(int address) {
+    protected int readWord(int address) {
         return readByte(address) | (readByte(address + 1) << 8);
     }
 
-    private void writeMemory(int address, int value, boolean x) {
+    protected void writeMemory(int address, int value, boolean x) {
         this.bus.write(address, value,this.redBusState);
         boolean flag = x ? this.state.indexWidthFlag : this.state.mWidthFlag;
         if (!this.state.emulationFlag && !flag) {
@@ -198,7 +198,7 @@ public class Cpu implements InstructionTable {
         }
     }
 
-    private int immediateArgs(boolean x) {
+    protected int immediateArgs(boolean x) {
         if (!this.state.emulationFlag) {
             if (x && !this.state.indexWidthFlag) {
                 return Utils.address(this.state.args[0], this.state.args[1]);
@@ -570,7 +570,7 @@ public class Cpu implements InstructionTable {
                 break;
 
             case 0xc2: // REP - Reset status bits
-                setProcessorStatus(getProcessorStatus() & (this.state.args[0] ^ 0xffffffff));
+                setProcessorStatus(getProcessorStatus() & (~this.state.args[0]));
                 break;
             case 0xe2: // SEP - Set status bits
                 setProcessorStatus(getProcessorStatus() | this.state.args[0]);
@@ -779,7 +779,7 @@ public class Cpu implements InstructionTable {
 
 
 
-            /** JMP *****************************************************************/
+            /* JMP */
             case 0x4c: // JMP - Absolute
                 this.state.pc = Utils.address(this.state.args[0], this.state.args[1]);
                 break;
@@ -793,7 +793,7 @@ public class Cpu implements InstructionTable {
                 this.state.pc = Utils.address(this.bus.read(lo, true, this.redBusState), this.bus.read(hi, true, this.redBusState));
                 break;
 
-            /** ORA - Logical Inclusive Or ******************************************/
+            /* ORA - Logical Inclusive Or */
             case 0x09: // #Immediate
                 this.state.a |= immediateArgs(false);
                 setArithmeticFlags(this.state.a, false);
@@ -815,7 +815,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** ASL - Arithmetic Shift Left *****************************************/
+            /* ASL - Arithmetic Shift Left */
             case 0x0a: // Accumulator
                 this.state.a = asl(this.state.a);
                 setArithmeticFlags(this.state.a, false);
@@ -830,7 +830,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** BIT - Bit Test ******************************************************/
+            /* BIT - Bit Test*/
             case 0x89: // 65C02 #Immediate
                 setZeroFlag((this.state.a & immediateArgs(false)) == 0);
                 break;
@@ -845,7 +845,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** AND - Logical AND ***************************************************/
+            /* AND - Logical AND */
             case 0x29: // #Immediate
                 this.state.a &= immediateArgs(false);
                 setArithmeticFlags(this.state.a, false);
@@ -867,7 +867,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** ROL - Rotate Left ***************************************************/
+            /* ROL - Rotate Left */
             case 0x2a: // Accumulator
                 this.state.a = rol(this.state.a);
                 setArithmeticFlags(this.state.a, false);
@@ -882,7 +882,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** EOR - Exclusive OR **************************************************/
+            /* EOR - Exclusive OR */
             case 0x49: // #Immediate
                 this.state.a ^= immediateArgs(false);
                 setArithmeticFlags(this.state.a, false);
@@ -904,7 +904,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** LSR - Logical Shift Right *******************************************/
+            /* LSR - Logical Shift Right */
             case 0x4a: // Accumulator
                 this.state.a = lsr(this.state.a);
                 setArithmeticFlags(this.state.a, false);
@@ -919,7 +919,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** ADC - Add with Carry ************************************************/
+            /* ADC - Add with Carry */
             case 0x69: // #Immediate
                 if (this.state.decimalModeFlag) {
                     this.state.a = adcDecimal(this.state.a, immediateArgs(false));
@@ -947,7 +947,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** ROR - Rotate Right **************************************************/
+            /* ROR - Rotate Right */
             case 0x6a: // Accumulator
                 this.state.a = ror(this.state.a);
                 setArithmeticFlags(this.state.a, false);
@@ -962,7 +962,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** STA - Store Accumulator *********************************************/
+            /* STA - Store Accumulator */
             case 0x92: // 65C02 STA (ZP)
             case 0x81: // (Zero Page,X)
             case 0x85: // Zero Page
@@ -979,7 +979,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** STY - Store Y Register **********************************************/
+            /* STY - Store Y Register */
             case 0x84: // Zero Page
             case 0x8c: // Absolute
             case 0x94: // Zero Page,X
@@ -987,14 +987,14 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** STX - Store X Register **********************************************/
+            /* STX - Store X Register */
             case 0x86: // Zero Page
             case 0x8e: // Absolute
             case 0x96: // Zero Page,Y
                 writeMemory(effectiveAddress, this.state.x, true);
                 break;
 
-            /** STZ - 65C02 Store Zero ****************************************************/
+            /* STZ - 65C02 Store Zero */
             case 0x64: // Zero Page
             case 0x74: // Zero Page,X
             case 0x9c: // Absolute
@@ -1002,7 +1002,7 @@ public class Cpu implements InstructionTable {
                 writeMemory(effectiveAddress, 0, false);
                 break;
 
-            /** LDY - Load Y Register ***********************************************/
+            /* LDY - Load Y Register */
             case 0xa0: // #Immediate
                 this.state.y = immediateArgs(true);
                 setArithmeticFlags(this.state.y, true);
@@ -1016,7 +1016,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** LDX - Load X Register ***********************************************/
+            /* LDX - Load X Register */
             case 0xa2: // #Immediate
                 this.state.x = immediateArgs(true);
                 setArithmeticFlags(this.state.x, true);
@@ -1030,7 +1030,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** LDA - Load Accumulator **********************************************/
+            /* LDA - Load Accumulator */
             case 0xa9: // #Immediate
                 this.state.a = immediateArgs(false);
                 setArithmeticFlags(this.state.a, false);
@@ -1052,7 +1052,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** CPY - Compare Y Register ********************************************/
+            /* CPY - Compare Y Register *****/
             case 0xc0: // #Immediate
                 cmp(this.state.y, immediateArgs(true), true);
                 break;
@@ -1062,7 +1062,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** CMP - Compare Accumulator *******************************************/
+            /* CMP - Compare Accumulator ****/
             case 0xc9: // #Immediate
                 cmp(this.state.a, immediateArgs(false), false);
                 break;
@@ -1082,7 +1082,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** DEC - Decrement Memory **********************************************/
+            /* DEC - Decrement Memory */
             case 0x3a: // 65C02 Immediate
                 this.state.a = --this.state.a & maskMWidth();
                 setArithmeticFlags(this.state.a, false);
@@ -1097,7 +1097,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** CPX - Compare X Register ********************************************/
+            /* CPX - Compare X Register *****/
             case 0xe0: // #Immediate
                 cmp(this.state.x, immediateArgs(true), true);
                 break;
@@ -1107,7 +1107,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** SBC - Subtract with Carry (Borrow) **********************************/
+            /* SBC - Subtract with Carry (Borrow) */
             case 0xe9: // #Immediate
                 if (this.state.decimalModeFlag) {
                     this.state.a = sbcDecimal(this.state.a, immediateArgs(false));
@@ -1135,7 +1135,7 @@ public class Cpu implements InstructionTable {
                 break;
 
 
-            /** INC - Increment Memory **********************************************/
+            /* INC - Increment Memory */
             case 0x1a: // 65C02 Increment Immediate
                 this.state.a = ++this.state.a & maskMWidth();
                 setArithmeticFlags(this.state.a, false);
@@ -1149,7 +1149,7 @@ public class Cpu implements InstructionTable {
                 setArithmeticFlags(tmp, false);
                 break;
 
-            /** 65C02 TRB/TSB - Test and Reset Bit/Test and Set Bit ***************/
+            /* 65C02 TRB/TSB - Test and Reset Bit/Test and Set Bit */
             case 0x14: // 65C02 TRB - Test and Reset bit - Zero Page
             case 0x1c: // 65C02 TRB - Test and Reset bit - Absolute
                 tmp = readMemory(effectiveAddress, false);
@@ -1166,7 +1166,7 @@ public class Cpu implements InstructionTable {
                 writeMemory(effectiveAddress, tmp, false);
                 break;
 
-            /** Unimplemented Instructions ****************************************/
+            /* Unimplemented Instructions */
             default:
                 setOpTrap();
                 break;
@@ -1176,7 +1176,7 @@ public class Cpu implements InstructionTable {
         peekAhead();
     }
 
-    private void peekAhead() {
+    protected void peekAhead() {
         this.state.nextIr = this.bus.read(this.state.pc, true, this.redBusState);
         int nextInstSize = this.state.getInstructionSize(this.state.nextIr);
         for (int i = 1; i < nextInstSize; i++) {
@@ -1185,18 +1185,18 @@ public class Cpu implements InstructionTable {
         }
     }
 
-    private void handleBrk(int returnPc) {
+    protected void handleBrk(int returnPc) {
         handleInterrupt(returnPc, -1, true);
         clearIrq();
     }
 
     // TODO possibly support ISR?
-    private void handleIrq(int returnPc) {
+    protected void handleIrq(int returnPc) {
 //        handleInterrupt(returnPc, IRQ_VECTOR_L, IRQ_VECTOR_H, false);
         clearIrq();
     }
 
-    private void handleNmi() {
+    protected void handleNmi() {
 //        handleInterrupt(this.state.pc, NMI_VECTOR_L, NMI_VECTOR_H, false);
         clearNmi();
     }
@@ -1206,7 +1206,7 @@ public class Cpu implements InstructionTable {
      *
      * @throws MemoryAccessException
      */
-    private void handleInterrupt(int returnPc, int vector, boolean isBreak) {
+    protected void handleInterrupt(int returnPc, int vector, boolean isBreak) {
         if (isBreak) {
             // Set the break flag before pushing.
             setBreakFlag();
@@ -1239,7 +1239,7 @@ public class Cpu implements InstructionTable {
      * @param operand The operand
      * @return The sum of the accumulator and the operand
      */
-    private int adc(int acc, int operand) {
+    protected int adc(int acc, int operand) {
         int neg = negativeMWidth();
         int mask = maskMWidth();
         int result = (operand & mask) + (acc & mask) + getCarryBit();
@@ -1255,7 +1255,7 @@ public class Cpu implements InstructionTable {
      * Add with Carry (BCD).
      */
 
-    private int adcDecimal(int acc, int operand) {
+    protected int adcDecimal(int acc, int operand) {
         int l, h, result;
         l = (acc & 0x0f) + (operand & 0x0f) + getCarryBit();
         if ((l & maskMWidth()) > 9) {
@@ -1280,7 +1280,7 @@ public class Cpu implements InstructionTable {
      * one's complement of the operand.  This lets the N, V, C, and Z
      * flags work out nicely without any additional logic.
      */
-    private int sbc(int acc, int operand) {
+    protected int sbc(int acc, int operand) {
         int result;
         result = adc(acc, ~operand);
         setArithmeticFlags(result, false);
@@ -1290,7 +1290,7 @@ public class Cpu implements InstructionTable {
     /**
      * Subtract with Carry, BCD mode.
      */
-    private int sbcDecimal(int acc, int operand) {
+    protected int sbcDecimal(int acc, int operand) {
         int l, h, result;
         l = (acc & 0x0f) - (operand & 0x0f) - (this.state.carryFlag ? 0 : 1);
         if ((l & 0x10) != 0) {
@@ -1313,7 +1313,7 @@ public class Cpu implements InstructionTable {
      * Compare two values, and set carry, zero, and negative flags
      * appropriately.
      */
-    private void cmp(int reg, int operand, boolean x) {
+    protected void cmp(int reg, int operand, boolean x) {
         int tmp = (reg - operand) & (x ? maskXWidth() : maskMWidth());
         setCarryFlag(reg >= operand);
         setZeroFlag(tmp == 0);
@@ -1324,7 +1324,7 @@ public class Cpu implements InstructionTable {
      * Set the Negative and Zero flags based on the current value of the
      * register operand.
      */
-    private void setArithmeticFlags(int reg, boolean x) {
+    protected void setArithmeticFlags(int reg, boolean x) {
         this.state.zeroFlag = (reg == 0);
         this.state.negativeFlag = (reg & (x ? negativeXWidth() : negativeMWidth())) != 0;
     }
@@ -1336,7 +1336,7 @@ public class Cpu implements InstructionTable {
      * @param m The value to shift left.
      * @return the left shifted value (m * 2).
      */
-    private int asl(int m) {
+    protected int asl(int m) {
         setCarryFlag((m & negativeMWidth()) != 0);
         return (m << 1) & maskMWidth();
     }
@@ -1345,7 +1345,7 @@ public class Cpu implements InstructionTable {
      * Shifts the given value right by one bit, filling with zeros,
      * and sets the carry flag to the low bit of the initial value.
      */
-    private int lsr(int m) {
+    protected int lsr(int m) {
         setCarryFlag((m & 0x01) != 0);
         return (m & maskMWidth()) >>> 1;
     }
@@ -1355,7 +1355,7 @@ public class Cpu implements InstructionTable {
      * of the carry flag, and setting the carry flag to the original value
      * of bit 7.
      */
-    private int rol(int m) {
+    protected int rol(int m) {
         int result = ((m << 1) | getCarryBit()) & maskMWidth();
         setCarryFlag((m & negativeMWidth()) != 0);
         return result;
@@ -1366,13 +1366,13 @@ public class Cpu implements InstructionTable {
      * of the carry flag, and setting the carry flag to the original value
      * of bit 1.
      */
-    private int ror(int m) {
+    protected int ror(int m) {
         int result = ((m >>> 1) | (getCarryBit() << (this.state.mWidthFlag ? 7 : 15))) & maskMWidth();
         setCarryFlag((m & 0x01) != 0);
         return result;
     }
 
-    private void mul(int value) {
+    protected void mul(int value) {
         int v;
         if (this.state.carryFlag) {
             v = (short) value * (short) this.state.a;
@@ -1386,7 +1386,7 @@ public class Cpu implements InstructionTable {
         this.state.overflowFlag = (this.state.d != 0) && (this.state.d != maskMWidth());
     }
 
-    private void div(int value) {
+    protected void div(int value) {
         if (value == 0) {
             this.state.a = 0;
             this.state.d = 0;
@@ -1639,7 +1639,7 @@ public class Cpu implements InstructionTable {
     public void setProgramCounter(int addr) {
         this.state.pc = addr;
 
-        // As a side-effect of setting the program counter,
+        // As a side effect of setting the program counter,
         // we want to peek ahead at the next state.
         peekAhead();
     }
@@ -1772,7 +1772,7 @@ public class Cpu implements InstructionTable {
         return this.state.signalStop;
     }
 
-    private void stackRPush(int data, boolean x) {
+    protected void stackRPush(int data, boolean x) {
         boolean flag = x ? this.state.indexWidthFlag : this.state.mWidthFlag;
         if (!this.state.emulationFlag && !flag) {
             stackRPushWord(data);
@@ -1781,17 +1781,17 @@ public class Cpu implements InstructionTable {
         }
     }
 
-    private void stackRPushByte(int data) {
+    protected void stackRPushByte(int data) {
         this.state.r = (this.state.r - 1) & 0xffff;
         this.bus.write(this.state.r, data, this.redBusState);
     }
 
-    private void stackRPushWord(int data) {
+    protected void stackRPushWord(int data) {
         stackRPushByte((data >> 8) & 0xff);
         stackRPushByte(data & 0xff);
     }
 
-    private int stackRPop(boolean x) {
+    protected int stackRPop(boolean x) {
         boolean flag = x ? this.state.indexWidthFlag : this.state.mWidthFlag;
         if (!this.state.emulationFlag && !flag) {
             return stackRPopWord();
@@ -1800,17 +1800,17 @@ public class Cpu implements InstructionTable {
         }
     }
 
-    private int stackRPopByte() {
+    protected int stackRPopByte() {
         int val = this.bus.read(this.state.r, true, this.redBusState);
         this.state.r = (this.state.r + 1) & 0xffff;
         return val;
     }
 
-    private int stackRPopWord() {
+    protected int stackRPopWord() {
         return stackRPopByte() | (stackRPopByte() << 8);
     }
 
-    private void stackPush(int data, boolean x) {
+    protected void stackPush(int data, boolean x) {
         if (!this.state.emulationFlag && !(x ? this.state.indexWidthFlag : this.state.mWidthFlag)) {
             stackPushWord(data);
         } else {
@@ -1823,7 +1823,7 @@ public class Cpu implements InstructionTable {
      * Will wrap-around if already at the bottom of the stack (This
      * is the same behavior as the real 6502)
      */
-    private void stackPushByte(int data) {
+    protected void stackPushByte(int data) {
         if (!this.stackBug) {
             this.bus.write(this.state.sp, data, this.redBusState);
         }
@@ -1838,12 +1838,12 @@ public class Cpu implements InstructionTable {
         }
     }
 
-    private void stackPushWord(int data) {
+    protected void stackPushWord(int data) {
         stackPushByte((data >> 8) & 0xff);
         stackPushByte(data & 0xff);
     }
 
-    private int stackPop(boolean x) {
+    protected int stackPop(boolean x) {
         boolean word = !this.state.emulationFlag && !(x ? this.state.indexWidthFlag : this.state.mWidthFlag);
         if (word) {
             return stackPopWord();
@@ -1855,7 +1855,7 @@ public class Cpu implements InstructionTable {
      * Pre-increment the stack pointer, and return the top of the stack. Will wrap-around if already
      * at the top of the stack (This is the same behavior as the real 6502)
      */
-    private int stackPopByte() {
+    protected int stackPopByte() {
         int val = 0;
         if (this.stackBug) {
             val = this.bus.read(this.state.sp, true, this.redBusState);
@@ -1871,14 +1871,14 @@ public class Cpu implements InstructionTable {
         return val;
     }
 
-    private int stackPopWord() {
+    protected int stackPopWord() {
         return stackPopByte() | (stackPopByte() << 8);
     }
 
     /*
     * Increment the PC, rolling over if necessary.
     */
-    private void incrementPC() {
+    protected void incrementPC() {
         if (this.state.pc == 0xffff) {
             this.state.pc = 0;
         } else {
@@ -1890,7 +1890,7 @@ public class Cpu implements InstructionTable {
      * Given a hi byte and a low byte, return the Absolute,X
      * offset address.
      */
-    private int xAddress(int lowByte, int hiByte) {
+    protected int xAddress(int lowByte, int hiByte) {
         return (Utils.address(lowByte, hiByte) + this.state.x) & 0xffff;
     }
 
@@ -1898,28 +1898,28 @@ public class Cpu implements InstructionTable {
      * Given a hi byte and a low byte, return the Absolute,Y
      * offset address.
      */
-    private int yAddress(int lowByte, int hiByte) {
+    protected int yAddress(int lowByte, int hiByte) {
         return (Utils.address(lowByte, hiByte) + this.state.y) & 0xffff;
     }
 
     /**
      * Given a single byte, compute the Zero Page,X offset address.
      */
-    private int zpxAddress(int zp) {
+    protected int zpxAddress(int zp) {
         return (zp + this.state.x) & maskXWidth();
     }
 
     /**
      * Given a single byte, compute the Zero Page,Y offset address.
      */
-    private int zpyAddress(int zp) {
+    protected int zpyAddress(int zp) {
         return (zp + this.state.y) & maskXWidth();
     }
 
     /**
      * Given a single byte, compute the offset address.
      */
-    private int relAddress(int offset) {
+    protected int relAddress(int offset) {
         // Cast the offset to a signed byte to handle negative offsets
         return (this.state.pc + (byte) offset) & 0xffff;
     }
@@ -1930,7 +1930,7 @@ public class Cpu implements InstructionTable {
      *
      * @return A string representing the mnemonic and operands of the instruction
      */
-    public static String disassembleOp(int opCode, int[] args, int insnLen) {
+    public static String disassembleOp(int opCode, int[] args, int instrLen) {
         String mnemonic = opcodeNames[opCode];
 
         if (mnemonic == null) {
@@ -1952,7 +1952,7 @@ public class Cpu implements InstructionTable {
                 sb.append(" $").append(Utils.wordToHex(Utils.address(args[0], args[1]))).append(",Y");
                 break;
             case IMM:
-                sb.append(" #$").append(insnLen > 2 ? Utils.wordToHex(Utils.address(args[0], args[1])) : Utils.byteToHex(args[0]));
+                sb.append(" #$").append(instrLen > 2 ? Utils.wordToHex(Utils.address(args[0], args[1])) : Utils.byteToHex(args[0]));
                 break;
             case IND:
                 sb.append(" ($").append(Utils.wordToHex(Utils.address(args[0], args[1]))).append(")");

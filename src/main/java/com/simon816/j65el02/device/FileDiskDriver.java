@@ -59,7 +59,7 @@ public class FileDiskDriver implements DiskDriver {
 
     /**
      * Closes the underlying open file for this drive.
-     *
+     * <p>
      * This should be called after the machine has been terminated. Using the drive after closing is
      * undefined.
      *

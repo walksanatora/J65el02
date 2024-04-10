@@ -21,6 +21,7 @@ package com.simon816.j65el02;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import com.simon816.j65el02.device.Device;
@@ -46,7 +47,7 @@ public class Bus {
         System.arraycopy(this.boundaries, 0, newBoundaries, 1, this.boundaries.length);
         newBoundaries[0] = device.startAddress();
         Arrays.sort(newBoundaries);
-        this.devices.sort((a, b) -> a.startAddress() - b.startAddress());
+        this.devices.sort(Comparator.comparingInt(Device::startAddress));
         this.boundaries = newBoundaries;
     }
 

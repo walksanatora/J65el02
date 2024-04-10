@@ -146,8 +146,8 @@ public class Machine implements Runnable {
     public void reset() {
         stop();
         this.cpu.reset();
-        this.bus.write(0, this.defaultDriveId);
-        this.bus.write(1, this.defaultMonitorId);
+        this.bus.write(0, this.defaultDriveId, this.cpu.redBusState);
+        this.bus.write(1, this.defaultMonitorId, this.cpu.redBusState);
     }
 
     /**
@@ -158,7 +158,7 @@ public class Machine implements Runnable {
     public void step() {
         this.interruptWait.acquireUninterruptibly();
         this.cpu.step();
-        this.bus.update();
+        this.bus.update(this.cpu.redBusState);
         if (this.cpu.isStopped()) {
             this.stop();
             return;

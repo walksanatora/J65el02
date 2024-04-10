@@ -37,7 +37,7 @@ public class Memory extends Device {
     }
 
     @Override
-    public void write(int address, int data) {
+    public void write(int address, int data, RedBusState _state) {
         if (address >= this.mem.length) {
             return;
         }
@@ -45,7 +45,7 @@ public class Memory extends Device {
     }
 
     @Override
-    public int read(int address, boolean cpuAccess) {
+    public int read(int address, boolean cpuAccess, RedBusState _state) {
         if (address >= this.mem.length) {
             return 0;
         }
