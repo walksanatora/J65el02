@@ -58,7 +58,7 @@ public class Bus {
 
     public int read(int address, boolean cpuAccess, RedBusState state) {
         Device device = findDevice(address,state);
-        return device.read(address - device.startAddress(state), cpuAccess,state) & 0xff;
+        return device.read(address - device.startAddress(state), cpuAccess, state) & 0xff;
     }
 
     public RedBus getRedBus() {

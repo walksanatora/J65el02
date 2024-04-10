@@ -22,6 +22,6 @@ public class RedBusState {
         this.enabled = true;
         this.memoryWindow = 0;
         this.enableWindow = false;
-        this.offset = 0;
+        this.offset = -1;
     }
 }
