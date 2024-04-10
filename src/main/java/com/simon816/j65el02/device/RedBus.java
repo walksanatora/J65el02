@@ -37,7 +37,7 @@ public class RedBus extends Device {
 
     }
 
-    private Peripheral[] peripherals = new Peripheral[0x100];
+    protected Peripheral[] peripherals = new Peripheral[0x100];
 
     public RedBus() {
         super(-1, -1); // there is no fixed address for the redbus
