@@ -36,9 +36,9 @@ public abstract class Device {
     }
 
     /* Methods required to be implemented by inheriting classes. */
-    public abstract void write(int address, int data);
+    public abstract void write(int address, int data, RedBusState state);
 
-    public abstract int read(int address, boolean cpuAccess);
+    public abstract int read(int address, boolean cpuAccess, RedBusState state);
 
     public int getSize() {
         return this.endAddress - this.startAddress + 1;

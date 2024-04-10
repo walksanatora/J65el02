@@ -37,14 +37,6 @@ public class RedBus extends Device {
 
     }
 
-    private int activeDeviceId;
-    private boolean enabled;
-
-    // TODO This does nothing
-    private int memoryWindow;
-    @SuppressWarnings("unused")
-    private boolean enableWindow;
-
     private Peripheral[] peripherals = new Peripheral[0x100];
 
     public RedBus() {
@@ -52,34 +44,26 @@ public class RedBus extends Device {
     }
 
     @Override
-    public void write(int address, int data) {
-        if (!this.enabled) {
+    public void write(int address, int data, RedBusState state) {
+        if (!state.enabled) {
             return;
         }
-        Peripheral peripheral = this.peripherals[this.activeDeviceId];
+        Peripheral peripheral = this.peripherals[state.activeDeviceId];
         if (peripheral != null) {
             peripheral.write(address, data & 0xff);
         }
     }
 
     @Override
-    public int read(int address, boolean cpuAccess) {
-        if (!this.enabled) {
+    public int read(int address, boolean cpuAccess, RedBusState state) {
+        if (!state.enabled) {
             return 0;
         }
-        Peripheral peripheral = this.peripherals[this.activeDeviceId];
+        Peripheral peripheral = this.peripherals[state.activeDeviceId];
         if (peripheral != null) {
             return peripheral.read(address);
         }
         return 0;
-    }
-
-    public void setActiveDevice(int id) {
-        this.activeDeviceId = id;
-    }
-
-    public int getActiveDevice() {
-        return this.activeDeviceId;
     }
 
     public void setWindowOffset(int offset) {
@@ -91,28 +75,12 @@ public class RedBus extends Device {
         return this.startAddress;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public void setMemoryWindow(int window) {
-        this.memoryWindow = window;
-    }
-
-    public int getMemoryWindow() {
-        return this.memoryWindow;
-    }
-
-    public void setEnableWindow(boolean enabled) {
-        this.enableWindow = enabled;
-    }
-
     public void setPeripheral(int id, Peripheral peripheral) {
         this.peripherals[id] = peripheral;
     }
 
-    public void updatePeripheral() {
-        Peripheral peripheral = this.peripherals[this.activeDeviceId];
+    public void updatePeripheral(RedBusState state) {
+        Peripheral peripheral = this.peripherals[state.activeDeviceId];
         if (peripheral != null) {
             peripheral.update();
         }

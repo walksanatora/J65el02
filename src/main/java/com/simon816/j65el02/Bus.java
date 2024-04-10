@@ -25,11 +25,12 @@ import java.util.List;
 
 import com.simon816.j65el02.device.Device;
 import com.simon816.j65el02.device.RedBus;
+import com.simon816.j65el02.device.RedBusState;
 
 public class Bus {
 
-    private final RedBus redBus;
-    private final List<Device> devices;
+    protected RedBus redBus;
+    protected List<Device> devices;
 
     private int[] boundaries;
 
@@ -49,22 +50,22 @@ public class Bus {
         this.boundaries = newBoundaries;
     }
 
-    public void write(int address, int data) {
+    public void write(int address, int data, RedBusState state) {
         Device device = findDevice(address);
-        device.write(address - device.startAddress(), data);
+        device.write(address - device.startAddress(), data, state);
     }
 
-    public int read(int address, boolean cpuAccess) {
+    public int read(int address, boolean cpuAccess, RedBusState state) {
         Device device = findDevice(address);
-        return device.read(address - device.startAddress(), cpuAccess) & 0xff;
+        return device.read(address - device.startAddress(), cpuAccess,state) & 0xff;
     }
 
     public RedBus getRedBus() {
         return this.redBus;
     }
 
-    public void update() {
-        this.redBus.updatePeripheral();
+    public void update(RedBusState state) {
+        this.redBus.updatePeripheral(state);
     }
 
     private Device findDevice(int address) {

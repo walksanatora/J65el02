@@ -25,6 +25,8 @@
 
 package com.simon816.j65el02;
 
+import com.simon816.j65el02.device.RedBusState;
+
 import java.util.function.IntConsumer;
 
 /**
@@ -60,18 +62,21 @@ public class Cpu implements InstructionTable {
     public static final int P_OVERFLOW    = 0x40;
     public static final int P_NEGATIVE    = 0x80;
 
-    private static final int S_STACK_TOP = 0x200;
-    private static final int R_STACK_TOP = 0x300;
+    protected static final int S_STACK_TOP = 0x200;
+    protected static final int R_STACK_TOP = 0x300;
 
-    private boolean stackBug = true;
+    protected boolean stackBug = true;
 
     /* The Bus */
-    private Bus bus;
+    protected Bus bus;
 
     /* The CPU state */
-    private final CpuState state = new CpuState();
+    protected CpuState state = new CpuState();
 
-    private IntConsumer logCallback;
+    /* The RedBus state */
+    protected RedBusState redBusState = new RedBusState();
+
+    protected IntConsumer logCallback;
 
     /**
      * Construct a new CPU.
@@ -178,7 +183,7 @@ public class Cpu implements InstructionTable {
     }
 
     private int readByte(int address) {
-        return this.bus.read(address, true);
+        return this.bus.read(address, true,this.redBusState);
     }
 
     private int readWord(int address) {
@@ -186,10 +191,10 @@ public class Cpu implements InstructionTable {
     }
 
     private void writeMemory(int address, int value, boolean x) {
-        this.bus.write(address, value);
+        this.bus.write(address, value,this.redBusState);
         boolean flag = x ? this.state.indexWidthFlag : this.state.mWidthFlag;
         if (!this.state.emulationFlag && !flag) {
-            this.bus.write(address + 1, value >>> 8);
+            this.bus.write(address + 1, value >>> 8,this.redBusState);
         }
     }
 
@@ -227,7 +232,7 @@ public class Cpu implements InstructionTable {
         }
 
         // Fetch memory location for this instruction.
-        this.state.ir = this.bus.read(this.state.pc, true);
+        this.state.ir = this.bus.read(this.state.pc, true,this.redBusState);
         int irAddressMode = (this.state.ir >> 2) & 0x07;  // Bits 3-5 of IR:  [ | | |X|X|X| | ]
         int irOpMode = this.state.ir & 0x03;              // Bits 6-7 of IR:  [ | | | | | |X|X]
 
@@ -238,7 +243,7 @@ public class Cpu implements InstructionTable {
         // Decode the instruction and operands
         this.state.instSize = this.state.getInstructionSize(this.state.ir);
         for (int i = 0; i < this.state.instSize - 1; i++) {
-            this.state.args[i] = this.bus.read(this.state.pc, true);
+            this.state.args[i] = this.bus.read(this.state.pc, true,this.redBusState);
             // Increment PC after reading
             incrementPC();
         }
@@ -309,16 +314,16 @@ public class Cpu implements InstructionTable {
                         break;
                     case 4: // (stk,S),Y
                         effectiveAddress = this.state.args[0] + this.state.sp & 0xffff;
-                        effectiveAddress = yAddress(this.bus.read(effectiveAddress, true),
-                                this.bus.read(effectiveAddress + 1, true));
+                        effectiveAddress = yAddress(this.bus.read(effectiveAddress, true, this.redBusState),
+                                this.bus.read(effectiveAddress + 1, true, this.redBusState));
                         break;
                     case 1: // r,R
                         effectiveAddress = this.state.args[0] + this.state.r & 0xffff;
                         break;
                     case 5:// (r,R),Y
                         effectiveAddress = this.state.args[0] + this.state.r & 0xffff;
-                        effectiveAddress = yAddress(this.bus.read(effectiveAddress, true),
-                                this.bus.read(effectiveAddress + 1, true));
+                        effectiveAddress = yAddress(this.bus.read(effectiveAddress, true, this.redBusState),
+                                this.bus.read(effectiveAddress + 1, true, this.redBusState));
                         break;
                 }
                 break;
@@ -326,7 +331,7 @@ public class Cpu implements InstructionTable {
                 switch (irAddressMode) {
                     case 0: // (Zero Page,X)
                         tmp = (this.state.args[0] + this.state.x) & 0xff;
-                        effectiveAddress = Utils.address(this.bus.read(tmp, true), this.bus.read(tmp + 1, true));
+                        effectiveAddress = Utils.address(this.bus.read(tmp, true, this.redBusState), this.bus.read(tmp + 1, true, this.redBusState));
                         break;
                     case 1: // Zero Page
                         effectiveAddress = this.state.args[0];
@@ -338,8 +343,8 @@ public class Cpu implements InstructionTable {
                         effectiveAddress = Utils.address(this.state.args[0], this.state.args[1]);
                         break;
                     case 4: // (Zero Page),Y
-                        tmp = Utils.address(this.bus.read(this.state.args[0], true),
-                                      this.bus.read((this.state.args[0] + 1) & 0xff, true));
+                        tmp = Utils.address(this.bus.read(this.state.args[0], true, this.redBusState),
+                                      this.bus.read((this.state.args[0] + 1) & 0xff, true, this.redBusState));
                         effectiveAddress = (tmp + this.state.y) & 0xffff;
                         break;
                     case 5: // Zero Page,X
@@ -358,7 +363,7 @@ public class Cpu implements InstructionTable {
         // Execute
         switch (this.state.ir) {
 
-            /** Single Byte Instructions; Implied and Relative **/
+            /* Single Byte Instructions; Implied and Relative */
             case 0x00: // BRK - Force Interrupt - Implied
                 handleBrk(this.state.pc + 1);
                 break;
@@ -381,7 +386,7 @@ public class Cpu implements InstructionTable {
             case 0xfc: // JSR - (Absolute Indexed Indirect,X)
                 stackPushWord(this.state.pc - 1);
                 tmp = (((this.state.args[1] << 8) | this.state.args[0]) + this.state.x) & 0xffff;
-                this.state.pc = Utils.address(this.bus.read(tmp, true), this.bus.read(tmp + 1, true));
+                this.state.pc = Utils.address(this.bus.read(tmp, true, this.redBusState), this.bus.read(tmp + 1, true, this.redBusState));
                 break;
             case 0x28: // PLP - Pull Processor Status - Implied
                 setProcessorStatus(stackPopByte());
@@ -534,7 +539,7 @@ public class Cpu implements InstructionTable {
                 break;
             case 0xd4: // PEI
                 stackPushWord(
-                        this.bus.read(this.state.args[0], true) | (this.bus.read(this.state.args[0] + 1, true) << 8));
+                        this.bus.read(this.state.args[0], true, this.redBusState) | (this.bus.read(this.state.args[0] + 1, true, this.redBusState) << 8));
                 break;
             case 0xf4: // PEA
                 stackPushWord(Utils.address(this.state.args[0], this.state.args[1]));
@@ -581,10 +586,10 @@ public class Cpu implements InstructionTable {
             case 0xef: // MMU
                 switch (this.state.args[0]) {
                     case 0x00: // Map device in Reg A to redbus window
-                        this.bus.getRedBus().setActiveDevice(this.state.a & 0xff);
+                        this.redBusState.activeDeviceId = this.state.a & 0xff;
                         break;
                     case 0x80: // Get mapped device to A
-                        this.state.a = this.bus.getRedBus().getActiveDevice();
+                        this.state.a = this.redBusState.activeDeviceId;
                         break;
 
                     case 0x01: // Redbus Window offset to A
@@ -599,17 +604,17 @@ public class Cpu implements InstructionTable {
                         break;
 
                     case 0x02: // Enable redbus
-                        this.bus.getRedBus().setEnabled(true);
+                        this.redBusState.enabled = true;
                         break;
                     case 0x82: // Disable redbus
-                        this.bus.getRedBus().setEnabled(false);
+                        this.redBusState.enabled = false;
                         break;
 
                     case 0x03: // Set external memory mapped window to A
-                        this.bus.getRedBus().setMemoryWindow(this.state.a);
+                        this.redBusState.memoryWindow = this.state.a;
                         break;
                     case 0x83: // Get memory mapped window to A
-                        this.state.a = this.bus.getRedBus().getMemoryWindow();
+                        this.state.a = this.redBusState.memoryWindow;
                         if (this.state.mWidthFlag) {
                             this.state.aTop = this.state.a & 0xff00;
                             this.state.a &= 0xff;
@@ -617,10 +622,10 @@ public class Cpu implements InstructionTable {
                         break;
 
                     case 0x04: // Enable external memory mapped window
-                        this.bus.getRedBus().setEnableWindow(true);
+                        this.redBusState.enableWindow = true;
                         break;
                     case 0x84: // Disable external memory mapped window
-                        this.bus.getRedBus().setEnableWindow(false);
+                        this.redBusState.enableWindow = false;
                         break;
 
                     case 0x05: // Set BRK address to A
@@ -780,12 +785,12 @@ public class Cpu implements InstructionTable {
                 break;
             case 0x6c: // JMP - Indirect
                 lo = Utils.address(this.state.args[0], this.state.args[1]); // Address of low byte
-                this.state.pc = Utils.address(this.bus.read(lo, true), this.bus.read(lo + 1, true));
+                this.state.pc = Utils.address(this.bus.read(lo, true, this.redBusState), this.bus.read(lo + 1, true, this.redBusState));
                 break;
             case 0x7c: // 65C02 JMP - (Absolute Indexed Indirect,X)
                 lo = (((this.state.args[1] << 8) | this.state.args[0]) + this.state.x) & 0xffff;
                 hi = lo + 1;
-                this.state.pc = Utils.address(this.bus.read(lo, true), this.bus.read(hi, true));
+                this.state.pc = Utils.address(this.bus.read(lo, true, this.redBusState), this.bus.read(hi, true, this.redBusState));
                 break;
 
             /** ORA - Logical Inclusive Or ******************************************/
@@ -1172,11 +1177,11 @@ public class Cpu implements InstructionTable {
     }
 
     private void peekAhead() {
-        this.state.nextIr = this.bus.read(this.state.pc, true);
+        this.state.nextIr = this.bus.read(this.state.pc, true, this.redBusState);
         int nextInstSize = this.state.getInstructionSize(this.state.nextIr);
         for (int i = 1; i < nextInstSize; i++) {
             int nextRead = (this.state.pc + i) & 0xffff;
-            this.state.nextArgs[i-1] = this.bus.read(nextRead, true);
+            this.state.nextArgs[i-1] = this.bus.read(nextRead, true, this.redBusState);
         }
     }
 
@@ -1201,9 +1206,7 @@ public class Cpu implements InstructionTable {
      *
      * @throws MemoryAccessException
      */
-    private void handleInterrupt(int returnPc, int vector, boolean isBreak)
-            {
-
+    private void handleInterrupt(int returnPc, int vector, boolean isBreak) {
         if (isBreak) {
             // Set the break flag before pushing.
             setBreakFlag();
@@ -1780,7 +1783,7 @@ public class Cpu implements InstructionTable {
 
     private void stackRPushByte(int data) {
         this.state.r = (this.state.r - 1) & 0xffff;
-        this.bus.write(this.state.r, data);
+        this.bus.write(this.state.r, data, this.redBusState);
     }
 
     private void stackRPushWord(int data) {
@@ -1798,7 +1801,7 @@ public class Cpu implements InstructionTable {
     }
 
     private int stackRPopByte() {
-        int val = this.bus.read(this.state.r, true);
+        int val = this.bus.read(this.state.r, true, this.redBusState);
         this.state.r = (this.state.r + 1) & 0xffff;
         return val;
     }
@@ -1822,7 +1825,7 @@ public class Cpu implements InstructionTable {
      */
     private void stackPushByte(int data) {
         if (!this.stackBug) {
-            this.bus.write(this.state.sp, data);
+            this.bus.write(this.state.sp, data, this.redBusState);
         }
         int bottom = this.state.emulationFlag ?  S_STACK_TOP - 0x100 : 0;
         if (this.state.sp <= bottom) {
@@ -1831,7 +1834,7 @@ public class Cpu implements InstructionTable {
             --this.state.sp;
         }
         if (this.stackBug) {
-            this.bus.write(this.state.sp, data);
+            this.bus.write(this.state.sp, data, this.redBusState);
         }
     }
 
@@ -1855,7 +1858,7 @@ public class Cpu implements InstructionTable {
     private int stackPopByte() {
         int val = 0;
         if (this.stackBug) {
-            val = this.bus.read(this.state.sp, true);
+            val = this.bus.read(this.state.sp, true, this.redBusState);
         }
         if (this.state.emulationFlag && this.state.sp >= S_STACK_TOP) {
             this.state.sp = S_STACK_TOP - 0x100;
@@ -1863,7 +1866,7 @@ public class Cpu implements InstructionTable {
             ++this.state.sp;
         }
         if (!this.stackBug) {
-            val = this.bus.read(this.state.sp, true);
+            val = this.bus.read(this.state.sp, true, this.redBusState);
         }
         return val;
     }
