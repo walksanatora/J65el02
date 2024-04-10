@@ -113,7 +113,7 @@ public class Machine implements Runnable {
 
     /**
      * Used by peripherals to signal that an operation has completed.
-     *
+     * <p>
      * If the CPU is currently blocked by a WAI, this will wake it up.
      */
     public void signal() {
@@ -152,7 +152,7 @@ public class Machine implements Runnable {
 
     /**
      * Perform a single step of the simulated system.
-     *
+     * <p>
      * If waiting for an interrupt, this blocks until {@link #signal} is called.
      */
     public void step() {
