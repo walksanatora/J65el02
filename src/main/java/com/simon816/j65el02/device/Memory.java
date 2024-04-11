@@ -65,6 +65,10 @@ public class Memory extends Device {
         stream.close();
     }
 
+    public void loadFromBytes(byte[] bytes, int memOffset, int maxLen) {
+        System.arraycopy(bytes, 0, this.mem, memOffset, Math.min(maxLen, bytes.length));
+    }
+
     public void clear() {
         Arrays.fill(this.mem, (byte) 0);
     }
