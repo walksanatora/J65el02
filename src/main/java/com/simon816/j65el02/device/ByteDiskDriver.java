@@ -9,13 +9,12 @@ import java.util.Arrays;
 
 public class ByteDiskDriver implements DiskDriver{
 
-    private final byte[] bytes;
+    private final ByteBuffer bytes;
     private final byte[] drive_name;
     private final byte[] drive_serial;
-    private int seek = 0;
 
     public ByteDiskDriver(byte[] bytes, String name, String serial) {
-        this.bytes = bytes;
+        this.bytes = ByteBuffer.wrap(bytes);
         this.drive_name = name.getBytes(StandardCharsets.UTF_8);
         this.drive_serial = serial.getBytes(StandardCharsets.UTF_8);
     }
@@ -32,21 +31,20 @@ public class ByteDiskDriver implements DiskDriver{
 
     @Override
     public void seek(int location) throws IOException {
-        this.seek = location;
+        this.bytes.position(Math.min(bytes.limit(),location));
     }
 
     @Override
     public void read(ByteBuffer buffer) throws IOException {
-        byte[] slice = Arrays.copyOfRange(bytes,seek,bytes.length);
-        int old_offset = buffer.arrayOffset();
-        System.arraycopy(slice,0,buffer.array(),buffer.arrayOffset(),Math.min(slice.length, buffer.capacity()));
-        seek += buffer.arrayOffset() - old_offset;
-        System.out.println(buffer);
+        int size = Math.min(buffer.capacity(),bytes.remaining());
+        for (int i = 0; i < size; i++) {
+            buffer.put(bytes.get());
+        }
     }
 
     @Override
     public void write(ByteBuffer buffer) throws IOException {
-        seek += Math.min(bytes.length-seek, buffer.capacity());
+        this.bytes.position(this.bytes.position() + buffer.capacity());
     }
 
     @Override
